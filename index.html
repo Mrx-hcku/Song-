@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Song App Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* --- ARCHITECTURE MINDSET: CSS Variables & Global Styles --- */
+        :root {
+            /* Color Palette */
+            --primary-accent: #00ff7f; /* Neon Green/Control */
+            --secondary-accent: #ff3366; /* Pink/Branding */
+            --bg-deep: #0a0a0a; /* Deep Black Background */
+            --bg-card: #141414; /* Elevated Card Surface */
+            --text-high: #ffffff;
+            --text-low: #b3b3b3;
+
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+
+            /* UI Elements */
+            --border-radius-sm: 4px;
+            --border-radius-lg: 10px;
+        }
+
+        /* Global Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-high);
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            padding-bottom: 80px; /* Space for the persistent player */
+        }
+
+        /* Header and Navigation */
+        #header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-deep);
+            z-index: 10;
+        }
+
+        #nav-bar {
+            display: flex;
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-sm);
+        }
+
+        .nav-item {
+            padding: var(--spacing-sm) var(--spacing-md);
+            margin: 0 var(--spacing-xs);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: var(--border-radius-lg);
+            transition: background-color 0.2s;
+        }
+
+        .nav-item.active {
+            background-color: var(--primary-accent);
+            color: var(--bg-deep);
+        }
+
+        /* Content Sections */
+        .content-section {
+            padding: var(--spacing-md);
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* Song Grids and Modules */
+        .heading-module {
+            font-size: 18px;
+            font-weight: 700;
+            border-left: 4px solid var(--secondary-accent);
+            padding-left: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .module-grid {
+            display: flex;
+            overflow-x: scroll;
+            gap: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            /* Hide scrollbar for cleaner look */
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+
+        .module-grid::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
+
+        .card-module {
+            flex: 0 0 150px; /* Fixed width */
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-sm);
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+        }
+
+        .card-module img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .card-module strong {
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-module span {
+            font-size: 12px;
+            color: var(--text-low);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .loading-state {
+            color: var(--text-low);
+            padding: var(--spacing-md) 0;
+            font-style: italic;
+        }
+
+        /* Player Bar */
+        #player-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-card);
+            padding: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 20;
+            height: 70px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+        }
+
+        #player-bar.active {
+            transform: translateY(0);
+        }
+
+        #player-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        #player-info img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: var(--border-radius-sm);
+            margin-right: var(--spacing-sm);
+        }
+
+        #player-title-artist {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        #player-title {
+            font-size: 14px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #player-artist {
+            font-size: 12px;
+            color: var(--text-low);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #player-controls button {
+            background: none;
+            border: none;
+            color: var(--text-high);
+            font-size: 24px;
+            margin: 0 var(--spacing-xs);
+            cursor: pointer;
+        }
+
+        #play-pause-btn {
+            color: var(--primary-accent);
+        }
+
+        /* Queue/Details Section */
+        #queue-section {
+            padding: var(--spacing-md);
+        }
+        
+        #queue-list {
+            list-style: none;
+        }
+
+        .queue-item {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--bg-card);
+            cursor: pointer;
+        }
+
+        .queue-item.active {
+            background-color: rgba(0, 255, 127, 0.1);
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-sm);
+        }
+
+        .queue-item img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: var(--border-radius-sm);
+            margin-right: var(--spacing-sm);
+        }
+        
+        .queue-item-info {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        /* Search Section */
+        #search-section {
+            padding: var(--spacing-md);
+        }
+
+        #search-input {
+            width: 100%;
+            padding: var(--spacing-sm);
+            border: 1px solid var(--primary-accent);
+            border-radius: var(--border-radius-sm);
+            background-color: var(--bg-card);
+            color: var(--text-high);
+            margin-bottom: var(--spacing-md);
+            font-size: 16px;
+        }
+
+        #search-results {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+        
+        .search-item {
+             background-color: var(--bg-card);
+             padding: var(--spacing-sm);
+             border-radius: var(--border-radius-sm);
+             display: flex;
+             align-items: center;
+             cursor: pointer;
+        }
+
+        /* Favorites Section */
+        #favorites-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+        
+        .favorite-item {
+             background-color: var(--bg-card);
+             padding: var(--spacing-sm);
+             border-radius: var(--border-radius-sm);
+             display: flex;
+             align-items: center;
+             justify-content: space-between;
+             cursor: pointer;
+        }
+
+        .favorite-item-info {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .favorite-item-info img {
+             width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: var(--border-radius-sm);
+            margin-right: var(--spacing-sm);
+        }
+        
+        .favorite-item button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--secondary-accent);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <h1 style="color: var(--primary-accent); font-size: 24px;">🎧 SongApp</h1>
+        <div id="nav-bar">
+            <div class="nav-item active" data-target="home-section">Home</div>
+            <div class="nav-item" data-target="search-section">Search</div>
+            <div class="nav-item" data-target="favorites-section">Favs</div>
+            <div class="nav-item" data-target="queue-section">Queue</div>
+        </div>
+    </div>
+
+    <div id="home-section" class="content-section active">
+        <h2 class="heading-module" style="border-color: var(--primary-accent);">Discover Music</h2>
+        <p class="loading-state" id="homeLoading">Loading categories...</p>
+
+        <h2 class="heading-module" id="hindi-title" style="border-color: var(--secondary-accent);">Latest Hindi Hits</h2>
+        <div id="hindi-grid" class="module-grid"></div>
+
+        <h2 class="heading-module" id="english-title" style="border-color: var(--primary-accent);">Global English Pop</h2>
+        <div id="english-grid" class="module-grid"></div>
+        
+        <h2 class="heading-module" id="bhojpuri-title" style="border-color: var(--secondary-accent);">Popular Bhojpuri</h2>
+        <div id="bhojpuri-grid" class="module-grid"></div>
+
+    </div>
+
+    <div id="search-section" class="content-section">
+        <input type="text" id="search-input" placeholder="Search for songs, artists, or albums...">
+        <div id="search-results" class="track-list">
+            <p class="loading-state" id="searchLoading"></p>
+        </div>
+    </div>
+
+    <div id="favorites-section" class="content-section">
+        <h2 class="heading-module" style="border-color: var(--primary-accent);">Your Favorite Songs</h2>
+        <div id="favorites-list">
+            <p class="loading-state" id="favoritesLoading">No favorites added yet.</p>
+        </div>
+    </div>
+
+    <div id="queue-section" class="content-section">
+        <h2 class="heading-module" style="border-color: var(--secondary-accent);">Now Playing Queue</h2>
+        <div id="queue-details">
+            </div>
+        <ul id="queue-list">
+            </ul>
+    </div>
+
+    <div id="player-bar">
+        <audio id="audio-player"></audio>
+        <div id="player-info" onclick="changeSection(document.querySelector('.nav-item[data-target=\'queue-section\']'))">
+            <img id="player-img" src="" alt="Album Art">
+            <div id="player-title-artist">
+                <div id="player-title">No Song Selected</div>
+                <div id="player-artist"></div>
+            </div>
+        </div>
+        <div id="player-controls">
+            <button id="prev-btn" class="fas fa-backward">⏮️</button>
+            <button id="play-pause-btn" class="fas fa-play">▶️</button>
+            <button id="next-btn" class="fas fa-forward">⏭️</button>
+        </div>
+    </div>
+
+    <script>
+        // --- API Configuration ---
+        // This is the API endpoint you are currently using
+        const API_BASE_URL = 'https://song1-beta.vercel.app/'; 
+        
+        // --- Global State ---
+        let currentPlaylist = [];
+        let originalPlaylist = [];
+        let currentTrackIndex = -1;
+        let isPlaying = false;
+        let favorites = []; // Array of track objects
+
+        // --- DOM Elements ---
+        const audioPlayer = document.getElementById('audio-player');
+        const playerBar = document.getElementById('player-bar');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const playerTitle = document.getElementById('player-title');
+        const playerArtist = document.getElementById('player-artist');
+        const playerImg = document.getElementById('player-img');
+        const queueList = document.getElementById('queue-list');
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        const favoritesList = document.getElementById('favorites-list');
+
+        // --- Category Configuration (Used for Home Screen) ---
+        const CATEGORY_CONFIG = [
+            { id: 'hindi-grid', title: 'Hindi', query: 'Latest Hindi Songs', endpoint: 'api/search/songs' }, 
+            { id: 'english-grid', title: 'English', query: 'Hollywood Top Hits', endpoint: 'api/search/songs' }, 
+            { id: 'bhojpuri-grid', title: 'Bhojpuri', query: 'Bhojpuri Song', endpoint: 'api/search/songs' }
+        ];
+
+        // --- Helper Functions ---
+        
+        /** Get the artist name string from the track object */
+        function getArtistName(track) {
+            if (track.artists && track.artists.length > 0) {
+                // Assuming you have a 'featured' artists list or similar structure
+                const mainArtists = track.artists.filter(a => a.role === 'primary' || a.role === 'main');
+                const artistList = mainArtists.length > 0 ? mainArtists : track.artists;
+                return artistList.map(a => a.name).join(', ');
+            }
+            return 'Various Artists';
+        }
+        
+        /** Switches between content sections based on nav click */
+        function changeSection(navItem) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            navItem.classList.add('active');
+
+            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+            const target = navItem.getAttribute('data-target');
+            document.getElementById(target).classList.add('active');
+        }
+
+        // --- Player Controls ---
+        
+        /** Renders the current queue in the queue section */
+        function renderQueue() {
+            queueList.innerHTML = '';
+            if (currentPlaylist.length === 0) {
+                queueList.innerHTML = '<p class="loading-state">Queue is empty. Start playing a song!</p>';
+                return;
+            }
+
+            currentPlaylist.forEach((track, index) => {
+                const item = document.createElement('li');
+                item.className = `queue-item ${index === currentTrackIndex ? 'active' : ''}`;
+                item.onclick = () => playTrack(index);
+
+                const imageUrl = track.image ? track.image[0].url : ''; 
+                const songTitle = track.name || track.title || 'Unknown Song';
+                const artistName = getArtistName(track);
+
+                item.innerHTML = `
+                    <img src="${imageUrl}" alt="Queue Art">
+                    <div class="queue-item-info">
+                        <strong>${songTitle}</strong>
+                        <span>${artistName}</span>
+                    </div>
+                `;
+                queueList.appendChild(item);
+            });
+        }
+        
+        /** Updates the player bar UI and controls */
+        function updatePlayerUI(track) {
+            if (!track) return;
+
+            playerBar.classList.add('active');
+            playerTitle.textContent = track.name || track.title || 'Unknown Song';
+            playerArtist.textContent = getArtistName(track);
+            playerImg.src = track.image ? track.image[0].url : ''; 
+        }
+
+        /** Main function to start playing a track */
+        function playTrack(index) {
+            if (currentPlaylist.length === 0 || index < 0 || index >= currentPlaylist.length) return;
+
+            currentTrackIndex = index;
+            const track = currentPlaylist[currentTrackIndex];
+            
+            // Check if the track has a working media URL
+            const mediaUrl = track.media_url || (track.downloadUrl && track.downloadUrl[3].url);
+            if (!mediaUrl) {
+                 console.error("No valid media URL found for this track.", track);
+                 playerTitle.textContent = "Error: Media not found";
+                 return;
+            }
+
+            audioPlayer.src = mediaUrl;
+            audioPlayer.play();
+            isPlaying = true;
+            playPauseBtn.textContent = '⏸️';
+
+            updatePlayerUI(track);
+            renderQueue();
+            
+            // NEW: Integrate Media Session API here
+            updateMediaSession(track);
+        }
+
+        /** Plays the next track in the playlist */
+        function playNext() {
+            if (currentPlaylist.length === 0) return;
+            let newIndex = currentTrackIndex + 1;
+            if (newIndex >= currentPlaylist.length) {
+                newIndex = 0; // Loop back to the start
+            }
+            playTrack(newIndex);
+        }
+
+        /** Plays the previous track in the playlist */
+        function playPrevious() {
+            if (currentPlaylist.length === 0) return;
+            let newIndex = currentTrackIndex - 1;
+            if (newIndex < 0) {
+                newIndex = currentPlaylist.length - 1; // Loop to the end
+            }
+            playTrack(newIndex);
+        }
+
+        // --- Media Session API Implementation (for Native Notifications) ---
+
+        /** Updates the native OS media controls with current song info */
+        function updateMediaSession(track) {
+            if ('mediaSession' in navigator) {
+                
+                // 1. Set Metadata (Song Info)
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.name || track.title || 'Unknown Song',
+                    artist: getArtistName(track),
+                    album: track.album ? track.album.name : 'Music App',
+                    artwork: [
+                        // Use the highest resolution image available for the notification
+                        { src: track.image[track.image.length - 1].url.replace('150x150', '512x512'), sizes: '512x512', type: 'image/jpeg' },
+                    ]
+                });
+
+                // 2. Set Action Handlers (Button Clicks)
+                // These connect the native buttons (notification/lock screen) to your JS functions
+                
+                // Play/Pause toggles
+                navigator.mediaSession.setActionHandler('play', () => {
+                    audioPlayer.play();
+                    playPauseBtn.textContent = '⏸️';
+                });
+                
+                navigator.mediaSession.setActionHandler('pause', () => {
+                    audioPlayer.pause();
+                    playPauseBtn.textContent = '▶️';
+                });
+
+                // Next/Previous buttons
+                navigator.mediaSession.setActionHandler('nexttrack', () => {
+                    playNext(); 
+                });
+                
+                navigator.mediaSession.setActionHandler('previoustrack', () => {
+                    playPrevious(); 
+                });
+                
+                // Set these to null to hide them, or implement logic for skip 10s
+                navigator.mediaSession.setActionHandler('seekbackward', null);
+                navigator.mediaSession.setActionHandler('seekforward', null);
+                
+                console.log("Media Session Updated and Controls Registered.");
+            } else {
+                console.log("Media Session API not supported in this environment.");
+            }
+        }
+
+        // --- Event Listeners ---
+        
+        // Navigation clicks
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => changeSection(item));
+        });
+
+        // Player bar controls
+        playPauseBtn.addEventListener('click', () => {
+            if (currentTrackIndex === -1) return;
+            if (isPlaying) {
+                audioPlayer.pause();
+                isPlaying = false;
+                playPauseBtn.textContent = '▶️';
+            } else {
+                audioPlayer.play();
+                isPlaying = true;
+                playPauseBtn.textContent = '⏸️';
+            }
+        });
+
+        nextBtn.addEventListener('click', playNext);
+        prevBtn.addEventListener('click', playPrevious); // Now using the new function
+
+        // Automatic next track
+        audioPlayer.addEventListener('ended', playNext);
+
+
+        // --- Data Fetching and Rendering (Simplified) ---
+
+        /** Fetches and renders songs for a specific category */
+        async function fetchAndRenderCategory(config) {
+            const container = document.getElementById(config.id);
+            container.innerHTML = ''; // Clear loading state
+            
+            try {
+                // Using the search endpoint with the category query
+                const url = `${API_BASE_URL}${config.endpoint}?query=${encodeURIComponent(config.query)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const results = data.data && data.data.results ? data.data.results : [];
+                
+                if (results.length === 0) {
+                    container.innerHTML = `<p class="loading-state">No tracks found for ${config.title}.</p>`;
+                    return;
+                }
+
+                results.forEach(track => {
+                    const card = document.createElement('div');
+                    card.className = 'card-module';
+                    
+                    // Click handler to start playback
+                    card.onclick = () => {
+                        currentPlaylist = results;
+                        originalPlaylist = [...results];
+                        const clickedIndex = results.findIndex(t => t.id === track.id);
+                        playTrack(clickedIndex);
+                        renderQueue(); 
+                        // Move to queue view after playing (optional)
+                        changeSection(document.querySelector('.nav-item[data-target="queue-section"]')); 
+                    };
+
+                    const imageUrl = track.image ? track.image[track.image.length - 1].url : 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+                    const songTitle = track.name || track.title || 'Unknown Song';
+                    const artistName = getArtistName(track); 
+
+                    card.innerHTML = `
+                        <img src="${imageUrl.replace('150x150', '250x250')}" alt="${songTitle}">
+                        <strong>${songTitle}</strong>
+                        <span>${artistName}</span>
+                        <button class="favorite-button" style="display:none;"></button> 
+                    `;
+                    container.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error(`Error fetching ${config.title}:`, error);
+                container.innerHTML = `<p class="loading-state" style="color: var(--secondary-accent)">Failed to load ${config.title}.</p>`;
+            }
+        }
+
+        // --- Initialization ---
+
+        /** Load favorites from local storage (simplified/placeholder) */
+        function loadFavorites() {
+             // Implementation for loading favorites from localStorage
+        }
+        
+        /** Render favorites (simplified/placeholder) */
+        function renderFavorites() {
+             // Implementation for rendering favorites
+        }
+
+        /** Initial load function */
+        async function initialLoad() {
+            loadFavorites(); 
+            document.getElementById('homeLoading').style.display = 'block';
+
+            // Fetch and render all categories concurrently
+            await Promise.all(CATEGORY_CONFIG.map(config => fetchAndRenderCategory(config)));
+
+            document.getElementById('homeLoading').style.display = 'none';
+
+            // Hide titles if categories are empty
+            CATEGORY_CONFIG.forEach(config => {
+                const container = document.getElementById(config.id);
+                const title = document.getElementById(`${config.id.split('-')[0]}-title`);
+                if (title && container.children.length === 0) {
+                    title.style.display = 'none';
+                }
+            });
+            
+            renderFavorites();
+        }
+
+        // Initialize the app
+        initialLoad();
+    </script>
+</body>
+</html>
